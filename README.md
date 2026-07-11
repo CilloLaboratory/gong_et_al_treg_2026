@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a repository for code to reproduce the figures from "Regulatory T cells modulate macrophages to potentiate immunosuppression in the tumor microenvironment" by Gong et al.
+This is a repository for code to reproduce the figures from the manuscript about regulatory T cells mediated immunosuppression in the tumor microenvironment by Gong et al.
 
 ## Downloading data
 
