@@ -1,0 +1,350 @@
+---
+title: "Gong et al Treg - Figure 3"
+output: html_document
+---
+
+## Load packages
+
+```{r}
+
+library(tidyverse)
+library(patchwork)
+library(scales)
+library(ggrastr)
+library(cowplot)
+library(igraph)
+library(ggraph)
+library(tidygraph)
+
+```
+
+## Figure 3A
+
+Schematic workflow for establishing in vitro microsuppression assays (MSA) for scRNA-seq.
+
+```{r}
+
+F3A <- plot_spacer()
+
+```
+
+## Figure 3B
+
+Representative histograms of CD8+ T cell proliferation under four sequencing conditions.
+
+```{r}
+
+F3B <- plot_spacer()
+
+```
+
+## Figure 3C
+
+UMAP showing four major cell types identified in MSA dataset (upper panel) across four sequencing conditions (lower panel)
+
+```{r}
+
+data_F3C <- read.csv("../Data/Gong_et_al_Treg_Fig_3_C.csv")
+
+## Axes ranges
+
+x_min <- min(data_F3C$umap_1)
+x_max <- max(data_F3C$umap_1)
+y_min <- min(data_F3C$umap_2)
+y_max <- max(data_F3C$umap_2)
+
+## Define the order of cell types
+
+data_F3C$cell_types_crude <- factor(data_F3C$cell_types_crude, levels = c("CD14+CD16+ myeloid", "CD4+ Treg", "CD8+ T cells", "γδT cells"))
+
+## Define the color panel for each cell type: hue_pal() is the palette for Seurat
+
+colors <- setNames(hue_pal()(length(levels(data_F3C$cell_types_crude))), 
+                   levels(data_F3C$cell_types_crude))
+
+## UMAP: colored by major cell types
+
+F3C_1 <- ggplot(data_F3C, aes(x = umap_1, y = umap_2, color = cell_types_crude)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 2, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 2, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  guides(colour = guide_legend(title = "Cell types", override.aes = list(size = 4, alpha = 1)))
+F3C_1
+
+## UMAP: colored by conditions
+
+data_F3C$Condition <- factor(data_F3C$Condition, levels = c("unstim_ctrl", "max_sup", "int_sup", "no_sup"))
+
+colors <- setNames(c("#5F1985", "#E50012", "#F7B52C", "#036EB7"), c("unstim_ctrl", "max_sup", "int_sup", "no_sup"))
+
+F3C_2 <- ggplot(data_F3C, aes(x = umap_1, y = umap_2, color = Condition)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) + 
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 2, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 2, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  guides(colour = guide_legend(title = "Conditions", override.aes = list(size = 4, alpha = 1)))
+F3C_2
+
+```
+
+## Figure 3D
+
+Dot plots quantifying net enrichment scores (NES) and false discovery rates (FDR) from gene set enrichment analysis.
+
+```{r}
+
+data_F3D <- readRDS("../Data/Gong_et_al_Treg_Fig_3_D.rds")
+
+## A function for creating GSEA dot plots
+
+plot_dotplot <- function(df) {
+  df <- df %>% 
+    mutate(pathway = factor(pathway, levels = selected_pathways)) %>% 
+    mutate(pathway = fct_relabel(pathway, 
+                                 ~ str_replace_all(.x, "_", " ")) %>% 
+             fct_rev()) %>% 
+    mutate(Condition = Condition %>% 
+           str_replace_all("_", " ") %>% 
+           factor(levels = c("unstim ctrl", "max sup", "int sup", "no sup"))) %>% 
+    distinct()
+  
+  p <- ggplot(df, aes(x = Condition, y = pathway)) +
+    geom_point(aes(size = padj, color = NES)) + 
+    scale_size(name = "FDR", 
+               range = c(8, 2), limits = c(0, 1), breaks = seq(0, 0.8, 0.2), 
+               labels = scales::label_number(accuracy = 0.1), 
+               guide = guide_legend(override.aes = list(shape = 21, fill = NA, stroke = 0.6, color = "black"))) +
+    scale_color_gradientn(name = "NES", 
+                          colors = viridis::magma(20), 
+                          limits = c(-2.5, 2.5), 
+                          breaks = seq(-2, 2, 1), 
+                          oob = scales::squish) + 
+    geom_text(data = df %>% filter(Significance == "Positive"), 
+              aes(x = Condition, y = pathway), 
+              inherit.aes = F, 
+              label = "*", size = 5, color = "black", fontface = "bold", vjust = 0.8) +
+    geom_text(data = df %>% filter(Significance == "Negative"), 
+              aes(x = Condition, y = pathway), 
+              inherit.aes = F,
+              label = "*", size = 5, color = "white", fontface = "bold", vjust = 0.8) + 
+    coord_fixed(ratio = 1) +
+    theme_bw(base_family = "Arial") + 
+    theme(panel.grid = element_blank(), 
+          axis.text.x = element_text(angle = 45, hjust = 1, size = 12, color = "black"), 
+          axis.text.y = element_text(angle = 0, hjust = 1, size = 9, color = "black"), 
+          axis.title = element_blank())
+  return(p)
+}
+
+## For CD14+CD16+ myeloid cells
+
+selected_pathways <- c("HALLMARK_APOPTOSIS", 
+                       "HALLMARK_E2F_TARGETS", 
+                       "HALLMARK_G2M_CHECKPOINT", 
+                       "REACTOME_CELL_CYCLE_MITOTIC", 
+                       "HALLMARK_OXIDATIVE_PHOSPHORYLATION", 
+                       "REACTOME_INTERLEUKIN_10_SIGNALING", 
+                       "REACTOME_TGF_BETA_RECEPTOR_SIGNALING_ACTIVATES_SMADS", 
+                       "REACTOME_INTERLEUKIN_35_SIGNALLING", 
+                       "HALLMARK_INFLAMMATORY_RESPONSE", 
+                       "REACTOME_INTERFERON_SIGNALING", 
+                       "REACTOME_INTERFERON_ALPHA_BETA_SIGNALING", 
+                       "HALLMARK_INTERFERON_ALPHA_RESPONSE", 
+                       "REACTOME_INTERFERON_GAMMA_SIGNALING", 
+                       "HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+                       "REACTOME_CLASS_I_MHC_MEDIATED_ANTIGEN_PROCESSING_PRESENTATION", 
+                       "REACTOME_MHC_CLASS_II_ANTIGEN_PRESENTATION", 
+                       "HALLMARK_TNFA_SIGNALING_VIA_NFKB", 
+                       "C1QC-hi Macro", 
+                       "ISG-hi Macro", 
+                       "NLRP3-hi Macro", 
+                       "SPP1-hi Macro"
+                       )
+
+F3D_1 <- plot_dotplot(data_F3D[["CD14+CD16+ myeloid"]] %>% 
+  filter(pathway %in% unique(selected_pathways)))
+F3D_1
+
+## For CD8+ T cells
+
+selected_pathways <- c("HALLMARK_E2F_TARGETS", 
+                       "HALLMARK_G2M_CHECKPOINT", 
+                       "REACTOME_CELL_CYCLE_MITOTIC",
+                       "HALLMARK_OXIDATIVE_PHOSPHORYLATION", 
+                       "REACTOME_TCR_SIGNALING", 
+                       "HALLMARK_IL2_STAT5_SIGNALING", 
+                       "REACTOME_PD_1_SIGNALING", 
+                       "REACTOME_INTERFERON_SIGNALING", 
+                       "REACTOME_INTERFERON_ALPHA_BETA_SIGNALING", 
+                       "HALLMARK_INTERFERON_ALPHA_RESPONSE", 
+                       "REACTOME_INTERFERON_GAMMA_SIGNALING", 
+                       "HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+                       "novershtern_central_mem_cd8", 
+                       "novershtern_eff_cd8", 
+                       "novershtern_eff_mem_cd8", 
+                       "novershtern_naive_cd8", 
+                       "BELTRA_texprog1", 
+                       "BELTRA_texprog2", 
+                       "BELTRA_texint", 
+                       "BELTRA_texterm"
+                       )
+
+F3D_2 <- plot_dotplot(data <- data_F3D[["CD8+ T cells"]] %>% 
+  filter(pathway %in% unique(selected_pathways)))
+F3D_2
+
+```
+
+## Figure 3E
+
+Bar plots showing the number of differentially expressed target genes regulated by top 10 transcription factors (TFs) in CD14+CD16+ myeloid cells under three sequencing conditions.
+
+```{r}
+
+data_F3E <- readRDS("../Data/Gong_et_al_Treg_Fig_3_E.rds")
+
+## Max suppression
+
+F3E_1 <- data_F3E$data_F3E_1 %>%
+  top_n(10, TF_genes_explained) %>%
+  ggplot(., aes(x = reorder(TF, -TF_genes_explained), y = TF_genes_explained)) + 
+  geom_col(fill = "#E50012") +
+  xlab("TF module") +
+  ylab("Number of genes in TF module") +
+  ggtitle("CD14+CD16+ myeloid: max suppression") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+F3E_1
+
+## No suppression
+
+F3E_2 <- data_F3E$data_F3E_2 %>%
+  top_n(10, TF_genes_explained) %>%
+  ggplot(., aes(x = reorder(TF, -TF_genes_explained), y = TF_genes_explained)) + 
+  geom_col(fill = "#036EB7") +
+  xlab("TF module") +
+  ylab("Number of genes in TF module") +
+  ggtitle("CD14+CD16+ myeloid: no suppression") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+F3E_2
+
+## Unstimulated control
+
+F3E_3 <- data_F3E$data_F3E_3 %>%
+  top_n(10, TF_genes_explained) %>%
+  ggplot(., aes(x = reorder(TF, -TF_genes_explained), y = TF_genes_explained)) + 
+  geom_col(fill = "#5F1985") +
+  xlab("TF module") +
+  ylab("Number of genes in TF module") +
+  ggtitle("CD14+CD16+ myeloid: unstimulated control") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+F3E_3
+
+```
+
+## Figure 3F
+
+Gene regulatory networks of top 10 TFs and their top 10 target genes in CD14+CD16+ myeloid cells under two sequencing conditions.
+
+```{r}
+
+data_F3F <- readRDS("../Data/Gong_et_al_Treg_Fig_3_F.rds")
+
+## Max suppression
+
+TF_top_10_list <- data_F3E$data_F3E_1 %>%
+  top_n(10, TF_genes_explained)
+g1 <- data_F3F$data_F3F_1 %>% 
+  filter(TF %in% TF_top_10_list$TF) %>% 
+  group_by(TF) %>% 
+  top_n(10, importance) %>% 
+  graph_from_data_frame(., directed = T)
+F3F_1 <- as_tbl_graph(g1) %>%
+  mutate(color = "Inferred Target") %>% 
+  mutate(color = ifelse(name %in% data_F3F$all_TF$V1, "TF", color)) %>% 
+  ggraph(., layout = "graphopt") + 
+  geom_edge_link() + 
+  geom_node_label(aes(label = name, fill = color), size = 3) + 
+  xlab("") + 
+  ylab("") + 
+  theme_classic() + 
+  theme(axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks = element_blank()) +
+  guides(fill = guide_legend(title = "", override.aes = aes(label = ""))) +
+  ggtitle("CD14+CD16+ myeloid: max suppression")
+F3F_1
+
+## No suppression
+
+TF_top_10_list <- data_F3E$data_F3E_2 %>%
+  top_n(10, TF_genes_explained)
+g2 <- data_F3F$data_F3F_2 %>% 
+  filter(TF %in% TF_top_10_list$TF) %>% 
+  group_by(TF) %>% 
+  top_n(10, importance) %>% 
+  graph_from_data_frame(., directed = T)
+F3F_2 <- as_tbl_graph(g2) %>%
+  mutate(color = "Inferred Target") %>% 
+  mutate(color = ifelse(name %in% data_F3F$all_TF$V1, "TF", color)) %>% 
+  ggraph(., layout = "graphopt") + 
+  geom_edge_link() + 
+  geom_node_label(aes(label = name, fill = color), size = 3) + 
+  xlab("") + 
+  ylab("") + 
+  theme_classic() + 
+  theme(axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks = element_blank()) +
+  guides(fill = guide_legend(title = "", override.aes = aes(label = ""))) +
+  ggtitle("CD14+CD16+ myeloid: no suppression")
+F3F_2
+
+```
+
+## Environment information
+
+```{r}
+
+sessionInfo()
+
+```

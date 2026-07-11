@@ -1,0 +1,370 @@
+---
+title: "Gong et al Treg - Figure 1"
+output: html_document
+---
+
+## Load packages
+
+```{r}
+
+library(tidyverse)
+library(patchwork)
+library(scales)
+library(ggrastr)
+library(cowplot)
+library(ggrepel)
+library(ggplotify)
+library(celltalker)
+library(CellChat)
+
+```
+
+## Figure 1A
+
+Schematic workflow of identifying receptor-ligand (R-L) network in scRNA-seq datasets.
+
+```{r}
+
+F1A <- plot_spacer()
+
+```
+
+## Figure 1B
+
+UMAP of HNSCC split by peripheral blood mononuclear cells (PBMC) and tumor.
+
+```{r}
+
+data_F1B <- read.csv("../Data/Gong_et_al_Treg_Fig_1_B.csv")
+
+## Axes ranges
+
+x_min <- min(data_F1B$umap_1)
+x_max <- max(data_F1B$umap_1)
+y_min <- min(data_F1B$umap_2)
+y_max <- max(data_F1B$umap_2)
+
+## Define the order of cell types
+
+data_F1B$scvi_cell_types_refined <- as.factor(data_F1B$scvi_cell_types_refined)
+
+## Define the color panel for each cell type: hue_pal() is the palette for Seurat
+
+colors <- setNames(hue_pal()(length(levels(data_F1B$scvi_cell_types_refined))), 
+                   levels(data_F1B$scvi_cell_types_refined))
+
+## Split UMAP: generate each panel without legend
+
+data_F1B_PBMC <- data_F1B %>% 
+  filter(sample_type == "PBMC")
+data_F1B_TIL <- data_F1B %>% 
+  filter(sample_type == "TIL")
+
+UMAP_PBMC <- ggplot(data_F1B_PBMC, aes(x = umap_1, y = umap_2, color = scvi_cell_types_refined)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.position = "none") + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1.7, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 1.7, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  annotate("text", x = x_min, y = y_max, 
+           label = "PBMC", hjust = 0, vjust = 0.5, size = 4)
+
+UMAP_TIL <- ggplot(data_F1B_TIL, aes(x = umap_1, y = umap_2, color = scvi_cell_types_refined)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.position = "none") + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1.7, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 1.7, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  annotate("text", x = x_min, y = y_max, 
+           label = "Tumor", hjust = 0, vjust = 0.5, size = 4)
+
+## Extract legend from main UMAP: to ensure all subclusters are included
+
+UMAP <- ggplot(data_F1B, aes(x = umap_1, y = umap_2, color = scvi_cell_types_refined)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  guides(colour = guide_legend(title = "Cell types", override.aes = list(size = 4, alpha = 1)))
+
+UMAP_legend <- cowplot::get_legend(UMAP)
+
+F1B <- plot_grid(plot_grid(UMAP_PBMC, UMAP_TIL, nrow = 1, align = "hv"), 
+                UMAP_legend, ncol = 2, rel_widths = c(1, 0.18))
+F1B
+
+```
+
+## Figure 1C
+
+Number of R-L pairs between PBMC and tumor detected in each patient.
+
+```{r}
+
+F1C <- plot_spacer()
+
+```
+
+## Figure 1D
+
+Number of tumor-specific R-L pairs between each myeloid antigen presenting cell (APC) subsets and CD4+ Treg or CD8+ T cells.
+
+```{r}
+
+F1D <- plot_spacer()
+
+```
+
+## Figure 1E
+
+Venn diagram of filtering tumor-specific R-L pairs with tumor-up ligands.
+
+```{r}
+
+F1E <- plot_spacer()
+
+```
+
+## Figure 1F
+
+Volcano plots comparing the expression of genes between cells in tumor and PBMC, respectively for CD4+ Treg and CD8+ T cells.
+
+```{r}
+
+data_F1F <- readRDS("../Data/Gong_et_al_Treg_Fig_1_F.rds")
+
+## CD4+ Treg: Volcano Plot
+
+volcano_plot_Treg <- ggplot(data_F1F$data_F1F_1, 
+                            aes(x = avg_log2FC, y = log_pval, 
+                                color = significance)) +
+  rasterize(geom_point(alpha = 1, size = 0.8), dpi = 300) +
+  scale_color_manual(values = c("Tumor-Up" = "red", 
+                                "Tumor-Down" = "blue")) +
+  labs(title = paste("CD4+ Treg in HNSCC: Tumor vs. PBMC"),
+       x = "log2 (fold change)",
+       y = "-log10 (false discovery rate)") +
+  scale_y_continuous(limits = c(0, 300)) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold", margin = margin(b = 5)), 
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8), 
+        axis.ticks = element_line(color = "black"),
+        axis.ticks.length = unit(0.15, "cm"), 
+        axis.text.x = element_text(size = 10, color = "black"), 
+        axis.text.y = element_text(size = 10, color = "black", angle = 90, hjust = 0.5),
+        axis.title.x = element_text(size = 10, color = "black"), 
+        axis.title.y = element_text(size = 10, color = "black", angle = 90, vjust = 0.5, margin = margin(r = 10)))
+
+## Add labels
+
+target_genes <- c("FOXP3", "CTLA4", "TIGIT", "IL10", "EBI3", "TNFRSF4", "TNFRSF9", "TNFRSF18", "ICOS", "BATF", "CSF1", "IL2RA", "IL1R2", "CXCR3", "CCR6", "CXCR6", "CD82", "SDC4", "IL1R1", "TNFRSF1B")
+
+volcano_plot_label_Treg <- volcano_plot_Treg +
+  geom_text_repel(data = data_F1F$data_F1F_1[data_F1F$data_F1F_1$gene %in% target_genes, ],
+                  aes(x = avg_log2FC, y = log_pval, label = gene),
+                  color = "black",
+                  size = 4, 
+                  fontface = "italic",
+                  box.padding = unit(0.7, "lines"),
+                  point.padding = unit(0.3, "lines"), 
+                  segment.color = "black",
+                  segment.size = 0.5, 
+                  max.overlaps = Inf, 
+                  force = 5, 
+                  min.segment.length = 0)
+
+## Add legends
+
+legend_Treg <- ggplot() +
+  geom_point(aes(x = 1, y = 3), shape = 21, fill = "red", color = "black", size = 2, stroke = 0.5) +
+  geom_text(aes(x = 1.2, y = 3, label = paste0("Tumor-Up (384)")), hjust = 0, size = 3) +
+  geom_point(aes(x = 1, y = 2), shape = 21, fill = "blue", color = "black", size = 2, stroke = 0.5) +
+  geom_text(aes(x = 1.2, y = 2, label = paste0("Tumor-Down (182)")), hjust = 0, size = 3) +
+  geom_point(aes(x = 1, y = 1), shape = 21, fill = "grey", color = "black", size = 2, stroke = 0.5) +
+  geom_text(aes(x = 1.2, y = 1, label = paste0("NS (10080)")), hjust = 0, size = 3) +
+  xlim(0.8, 3) + ylim(0.5, 3.5) +
+  theme_void()
+legend_grob <- ggplotGrob(legend_Treg)
+
+F1F_1 <- ggdraw(volcano_plot_label_Treg) +
+  draw_plot(legend_Treg, 
+            x = 0.75, 
+            y = 0.65, 
+            width = 0.25, 
+            height = 0.125)
+F1F_1
+
+```
+
+```{r}
+
+## CD8+ T cells: Volcano Plot
+
+volcano_plot_CD8 <- ggplot(data_F1F$data_F1F_2, 
+                           aes(x = avg_log2FC, y = log_pval, 
+                               color = significance)) +
+  rasterize(geom_point(alpha = 1, size = 0.8), dpi = 300) +
+  scale_color_manual(values = c("Tumor-Up" = "red", 
+                                "Tumor-Down" = "blue")) +
+  labs(title = paste("CD8+ T cells in HNSCC: Tumor vs. PBMC"),
+       x = "log2 (fold change)",
+       y = "-log10 (false discovery rate)") +
+  scale_y_continuous(limits = c(0, 300)) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold", margin = margin(b = 5)), 
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8), 
+        axis.ticks = element_line(color = "black"),
+        axis.ticks.length = unit(0.15, "cm"), 
+        axis.text.x = element_text(size = 10, color = "black"), 
+        axis.text.y = element_text(size = 10, color = "black", angle = 90, hjust = 0.5),
+        axis.title.x = element_text(size = 10, color = "black"), 
+        axis.title.y = element_text(size = 10, color = "black", angle = 90, vjust = 0.5, margin = margin(r = 10)))
+
+## Add labels
+
+target_genes <- c("IFNG", "CXCL13", "CSF1", "TNF", "CXCR3", "TIGIT", "LAG3", "PDCD1", "CTLA4", "GZMB", "FOS", "JUN")
+
+volcano_plot_label_CD8 <- volcano_plot_CD8 +
+  geom_text_repel(data = data_F1F$data_F1F_2[data_F1F$data_F1F_2$gene %in% target_genes, ],
+                  aes(x = avg_log2FC, y = log_pval, label = gene),
+                  color = "black",
+                  size = 4, 
+                  fontface = "italic",
+                  box.padding = unit(0.7, "lines"),
+                  point.padding = unit(0.3, "lines"), 
+                  segment.color = "black",
+                  segment.size = 0.5, 
+                  max.overlaps = Inf, 
+                  force = 5, 
+                  min.segment.length = 0)
+
+## Add legends
+
+legend_CD8 <- ggplot() +
+  geom_point(aes(x = 1, y = 3), shape = 21, fill = "red", color = "black", size = 2, stroke = 0.5) +
+  geom_text(aes(x = 1.2, y = 3, label = paste0("Tumor-Up (1688)")), hjust = 0, size = 3) +
+  geom_point(aes(x = 1, y = 2), shape = 21, fill = "blue", color = "black", size = 2, stroke = 0.5) +
+  geom_text(aes(x = 1.2, y = 2, label = paste0("Tumor-Down (282)")), hjust = 0, size = 3) +
+  geom_point(aes(x = 1, y = 1), shape = 21, fill = "grey", color = "black", size = 2, stroke = 0.5) +
+  geom_text(aes(x = 1.2, y = 1, label = paste0("NS (8432)")), hjust = 0, size = 3) +
+  xlim(0.8, 3) + ylim(0.5, 3.5) +
+  theme_void()
+legend_grob <- ggplotGrob(legend_CD8)
+
+F1F_2 <- ggdraw(volcano_plot_label_CD8) +
+  draw_plot(legend_CD8, 
+            x = 0.75, 
+            y = 0.65, 
+            width = 0.25, 
+            height = 0.125)
+F1F_2
+
+```
+
+## Figure 1G
+
+Circos plot showing the tumor-specific R-L pairs among CD4+ Treg, CD8+ T cells, and myeloid APCs.
+
+```{r}
+
+data_F1G <- read.csv("../Data/Gong_et_al_Treg_Fig_1_G.csv")
+
+data_F1G_plot <- data_F1G %>%
+  filter(frequency >= 5) %>% 
+  select(-frequency) %>% 
+  mutate(cell_type1 = str_extract(interaction_pairs, "^[^_]+")) %>% 
+  mutate(cell_type2 = str_extract(interaction_pairs, "(?<=_).*"))
+
+colors_use <- RColorBrewer::brewer.pal(n = 8, "Set2")
+
+F1G <- as.ggplot(
+  ~circos_plot(ligand_receptor_frame = data_F1G_plot,
+               cell_group_colors = colors_use,
+               ligand_color = "red",
+               receptor_color = "purple",
+               cex_outer = 0.5,
+               cex_inner = 0.4,
+               facing_outer = "outside",
+               facing_inner = "clockwise"))
+F1G
+
+```
+
+## Figure 1H
+
+A representative cellular neighborhood (neighborhood 1) enriched by CD4+ Treg and CD14+CD16+ myeloid cells in HNSCC spatial transcriptomic dataset.
+
+```{r}
+
+F1H <- plot_spacer()
+
+```
+
+## Figure 1I
+
+Heatmap quantifying the communication probability of CSF signaling network in aforementioned cellular neighborhood 1.
+
+```{r}
+
+data_F1I <- readRDS("../Data/Gong_et_al_Treg_Fig_1_I.rds")
+
+pathways.show <- c("CSF")
+
+F1I <- as.ggplot(netVisual_heatmap(data_F1I, signaling = pathways.show, color.heatmap = "Reds"))
+F1I
+
+```
+
+## Environment information
+
+```{r}
+
+sessionInfo()
+
+```

@@ -1,0 +1,310 @@
+---
+title: "Gong et al Treg - Figure 4"
+output: html_document
+---
+
+## Load packages
+
+```{r}
+
+library(tidyverse)
+library(patchwork)
+library(pheatmap)
+library(scales)
+library(ggrastr)
+library(viridis)
+library(cowplot)
+library(ggplotify)
+library(celltalker)
+
+```
+
+## Figure 4A
+
+In vitro microsuppression assay (MSA) comparing the percentage of suppression on CD8+ T cells between using APCs and beads to provide TCR and co-stimulation.
+
+```{r}
+
+F4A <- plot_spacer()
+
+```
+
+## Figure 4B
+
+Representative histograms of CD8+ T cell proliferation quantified by dilution of CellTrace Violet in three Treg/CD8 ratios.
+
+```{r}
+
+F4B <- plot_spacer()
+
+```
+
+## Figure 4C
+
+Proportion of non-dividing live CD8+ T cells from MSA.
+
+```{r}
+
+F4C <- plot_spacer()
+
+```
+
+## Figure 4D
+
+A total of 30,039 CD8+ T cells were bioinformatically isolated from the MSA scRNA-seq dataset and re-clustered into 8 subclusters.
+
+```{r}
+
+data_F4D_E_F <- read.csv("../Data/Gong_et_al_Treg_Fig_4_D_E_F.csv", row.names = 1)
+
+## Axes ranges
+
+x_min <- min(data_F4D_E_F$umap_1)
+x_max <- max(data_F4D_E_F$umap_1)
+y_min <- min(data_F4D_E_F$umap_2)
+y_max <- max(data_F4D_E_F$umap_2)
+
+## UMAP: colored by cell types
+
+data_F4D_E_F$cell_types_fine <- as.factor(data_F4D_E_F$cell_types_fine)
+
+colors <- setNames(hue_pal()(length(levels(data_F4D_E_F$cell_types_fine))), 
+                   levels(data_F4D_E_F$cell_types_fine))
+
+F4D <- ggplot(data_F4D_E_F, aes(x = umap_1, y = umap_2, color = cell_types_fine)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  annotate("segment", x = x_min - 1, xend = x_min + 0.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min - 1, xend = x_min - 1, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min - 1, y = y_min + 2, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  guides(colour = guide_legend(title = "CD8 subclusters", override.aes = list(size = 4, alpha = 1)))
+F4D
+
+```
+
+## Figure 4E
+
+Heatmap comparing the relative enrichment of each CD8 subcluster across four suppression conditions.
+
+```{r}
+
+df_F4E <- data_F4D_E_F %>% 
+  select(cluster = cell_types_fine, Condition)                   # extract data
+tab_F4E <- table(df_F4E$cluster, df_F4E$Condition)               # subcluster × condition contingency table
+tab_prop_F4E <- prop.table(tab_F4E, margin = 1)                  # for each subcluster: calculate proportion in each condition
+tab_scaled_F4E <- t(scale(t(tab_prop_F4E)))                      # row-wise (per subcluster) z-score scaling
+tab_scaled_F4E[is.na(tab_scaled_F4E)] <- 0                       # remove NA
+F4E <- pheatmap(mat = tab_scaled_F4E,                            # heatmap
+                color = colorRampPalette(c("purple", "black", "yellow"))(1024), 
+                cluster_rows = T, cluster_cols = T, 
+                treeheight_row = 50, treeheight_col = 50, 
+                border_color = NA, fontsize_row = 10, fontsize_col = 10)
+F4E
+
+```
+
+## Figure 4F
+
+Heatmap visualizing the association between each CD8 subcluster and functional states of CD8+ T cells.
+
+```{r}
+
+CD8_signatures <- c(
+  "HALLMARK_INTERFERON_ALPHA_RESPONSE", "HALLMARK_INTERFERON_GAMMA_RESPONSE", 
+  "REACTOME_COSTIMULATION_BY_THE_CD28_FAMILY", "REACTOME_PD_1_SIGNALING", "REACTOME_TCR_SIGNALING", 
+  "BELTRA_texprog1", "BELTRA_texprog2", "BELTRA_texint", "BELTRA_texterm", "KUMAR_lung_cd8_up", "KUMAR_spleen_cd8_up", 
+  "novershtern_naive_cd8", "novershtern_central_mem_cd8", "novershtern_eff_mem_cd8", "novershtern_eff_cd8", 
+  "KEGG_CELL_CYCLE", "HALLMARK_E2F_TARGETS", "HALLMARK_G2M_CHECKPOINT")
+
+df_F4F <- data_F4D_E_F %>%
+  select(cluster = cell_types_fine, all_of(CD8_signatures))
+df_F4F_mean <- df_F4F %>%
+  group_by(cluster) %>%
+  summarise(across(CD8_signatures, mean, na.rm = T))
+mat_F4F <- df_F4F_mean %>%
+  column_to_rownames("cluster") %>%
+  as.matrix()
+mat_scaled_F4F <- t(scale(mat_F4F))
+mat_scaled_F4F[is.na(mat_scaled_F4F)] <- 0
+F4F <- pheatmap(mat = mat_scaled_F4F, 
+                color = colorRampPalette(c("purple", "black", "yellow"))(1024), 
+                cluster_rows = T, cluster_cols = T, 
+                treeheight_row = 50, treeheight_col = 50, 
+                border_color = NA, fontsize_row = 10, fontsize_col = 10)
+F4F
+
+```
+
+## Figure 4G
+
+A total of 17,396 myeloid APCs were bioinformatically isolated from the MSA scRNA-seq dataset and re-clustered into 6 subclusters.
+
+```{r}
+
+data_F4G_H_I_J <- read.csv("../Data/Gong_et_al_Treg_Fig_4_G_H_I_J.csv", row.names = 1, check.names = F)
+
+## Axes ranges
+
+x_min <- min(data_F4G_H_I_J$umap_1)
+x_max <- max(data_F4G_H_I_J$umap_1)
+y_min <- min(data_F4G_H_I_J$umap_2)
+y_max <- max(data_F4G_H_I_J$umap_2)
+
+## UMAP: colored by cell types
+
+data_F4G_H_I_J$cell_types_fine <- as.factor(data_F4G_H_I_J$cell_types_fine)
+
+colors <- setNames(hue_pal()(length(levels(data_F4G_H_I_J$cell_types_fine))), 
+                   levels(data_F4G_H_I_J$cell_types_fine))
+
+F4G <- ggplot(data_F4G_H_I_J, aes(x = umap_1, y = umap_2, color = cell_types_fine)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 2, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 2, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  guides(colour = guide_legend(title = "APC subclusters", override.aes = list(size = 4, alpha = 1)))
+F4G
+
+```
+
+## Figure 4H
+
+Heatmap comparing the relative enrichment of each myeloid subcluster across four suppression conditions.
+
+```{r}
+
+df_F4H <- data_F4G_H_I_J %>% 
+  select(cluster = cell_types_fine, Condition)                   # extract data
+tab_F4H <- table(df_F4H$cluster, df_F4H$Condition)               # subcluster × condition contingency table
+tab_prop_F4H <- prop.table(tab_F4H, margin = 1)                  # for each subcluster: calculate proportion in each condition
+tab_scaled_F4H <- t(scale(t(tab_prop_F4H)))                      # row-wise (per subcluster) z-score scaling
+tab_scaled_F4H[is.na(tab_scaled_F4H)] <- 0                       # remove NA
+F4H <- pheatmap(mat = tab_scaled_F4H,                            # heatmap
+                color = colorRampPalette(c("purple", "black", "yellow"))(1024), 
+                cluster_rows = T, cluster_cols = T, 
+                treeheight_row = 50, treeheight_col = 50, 
+                border_color = NA, fontsize_row = 10, fontsize_col = 10)
+F4H
+
+```
+
+## Figure 4I
+
+Heatmap visualizing the association between each myeloid subcluster and gene modules of tumor-infiltrated myeloid cells.
+
+```{r}
+
+TAM_signatures <- c("Classical Mono", "Non-classical Mono", 
+                    "C1QC-hi Macro", "HSP-hi Macro", "Hypoxic Macro", "ISG-hi Macro", "NLRP3-hi Macro", "SPP1-hi Macro")
+
+df_F4I <- data_F4G_H_I_J %>%
+  select(cluster = cell_types_fine, all_of(TAM_signatures))
+df_F4I_mean <- df_F4I %>%
+  group_by(cluster) %>%
+  summarise(across(TAM_signatures, mean, na.rm = T))
+mat_F4I <- df_F4I_mean %>%
+  column_to_rownames("cluster") %>%
+  as.matrix()
+mat_scaled_F4I <- t(scale(mat_F4I))
+mat_scaled_F4I[is.na(mat_scaled_F4I)] <- 0
+F4I <- pheatmap(mat = mat_scaled_F4I, 
+                color = colorRampPalette(c("purple", "black", "yellow"))(1024), 
+                cluster_rows = T, cluster_cols = T, 
+                treeheight_row = 50, treeheight_col = 50, 
+                border_color = NA, fontsize_row = 10, fontsize_col = 10)
+F4I
+
+```
+
+## Figure 4J
+
+Violin plot of ordered myeloid APC subclusters based on the mean pseudotime value of each subcluster.
+
+```{r}
+
+F4J <- data_F4G_H_I_J %>%
+  mutate(cell_types_fine = as.factor(cell_types_fine)) %>% 
+  group_by(cell_types_fine) %>% 
+  mutate(`Mean pseudotime` = mean(Avg_pseudotime_value)) %>%
+  ungroup() %>% 
+  ggplot(.,aes(x = reorder(cell_types_fine, `Mean pseudotime`), y = Avg_pseudotime_value,
+               fill = `Mean pseudotime`)) +
+  geom_violin() + 
+  geom_boxplot(outlier.shape = NA, width = 0.2, colour = "white") + 
+  theme_bw() + 
+  theme(legend.position = "bottom") + 
+  xlab("APC subclusters") + 
+  ylab("Pseudotime") + 
+  ggtitle("CD14+CD16+ myeloid: Pseudotime value")
+F4J
+
+```
+
+## Figure 4K
+
+Circos plot showing top R-L pairs identified in MSA scRNA-seq dataset under the max suppression condition.
+
+```{r}
+
+data_F4K <- read.csv("../Data/Gong_et_al_Treg_Fig_4_K.csv")
+
+colors_use <- hue_pal()(15)
+
+F4K <- as.ggplot(
+  ~circos_plot(ligand_receptor_frame = data_F4K,
+               cell_group_colors = colors_use,
+               ligand_color = "red",
+               receptor_color = "purple",
+               facing_inner = "clockwise", 
+               facing_outer = "inside", 
+               cex_inner = 0.5,
+               cex_outer = 1
+               )$plot
+) + ggtitle("Max suppression") + 
+  theme(plot.title = element_text(hjust = 0))
+F4K
+
+```
+
+## Environment information
+
+```{r}
+
+sessionInfo()
+
+```

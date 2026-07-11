@@ -1,0 +1,502 @@
+---
+title: "Gong et al Treg - Figure 2"
+output: html_document
+---
+
+## Load packages
+
+```{r}
+
+library(tidyverse)
+library(scales)
+library(ggrastr)
+library(cowplot)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(ggpubr)
+library(nichenetr)
+library(Seurat)
+
+Treg_levels <- c("Naive Treg", "Early-activated Treg", "ISG-hi Treg", "TNFR-hi Treg", "Cycling Treg")
+APC_levels <- c("Classical Mono", "Non-classical Mono", "C1QC-hi Macro", "HSP-hi Macro", "Hypoxic Macro", "ISG-hi Macro", "NLRP3-hi Macro", "SPP1-hi Macro")
+
+```
+
+## Figure 2A
+
+A total of 15,578 Treg cells were bioinformatically isolated from the PBMC and tumor of HNSCC and MEL scRNA-seq datasets and re-clustered into 5 subclusters.
+
+```{r}
+
+data_F2A <- read.csv("../Data/Gong_et_al_Treg_Fig_2_A.csv")
+
+## Axes ranges
+
+x_min <- min(data_F2A$umap_1)
+x_max <- max(data_F2A$umap_1)
+y_min <- min(data_F2A$umap_2)
+y_max <- max(data_F2A$umap_2)
+
+## Define the order of cell types
+
+data_F2A$Treg_subclusters <- factor(data_F2A$Treg_subclusters, levels = Treg_levels)
+
+## Define the color panel for each cell type: hue_pal() is the palette for Seurat
+
+colors <- setNames(hue_pal()(length(levels(data_F2A$Treg_subclusters))), 
+                   levels(data_F2A$Treg_subclusters))
+
+## Split UMAP: generate each panel without legend
+
+data_F2A_PBMC <- data_F2A %>% 
+  filter(sample_type == "PBMC")
+data_F2A_TIL <- data_F2A %>% 
+  filter(sample_type == "TIL")
+
+UMAP_PBMC <- ggplot(data_F2A_PBMC, aes(x = umap_1, y = umap_2, color = Treg_subclusters)) + 
+  rasterize(geom_point(colour = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.position = "none") + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1.7, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 1.7, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  annotate("text", x = x_min, y = y_max, 
+           label = "PBMC", hjust = 0, vjust = 0.5, size = 4)
+
+UMAP_TIL <- ggplot(data_F2A_TIL, aes(x = umap_1, y = umap_2, color = Treg_subclusters)) + 
+  rasterize(geom_point(colour = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.position = "none") + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1.7, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 1.7, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  annotate("text", x = x_min, y = y_max, 
+           label = "Tumor", hjust = 0, vjust = 0.5, size = 4)
+
+## Extract legend from main UMAP: to ensure all subclusters are included
+
+UMAP <- ggplot(data_F2A, aes(x = umap_1, y = umap_2, color = Treg_subclusters)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  guides(colour = guide_legend(title = "Treg subclusters", override.aes = list(size = 4, alpha = 1)))
+
+UMAP_legend <- cowplot::get_legend(UMAP)
+
+F2A <- plot_grid(plot_grid(UMAP_PBMC, UMAP_TIL, nrow = 1, align = "hv"),
+                 UMAP_legend, ncol = 2, rel_widths = c(1, 0.25))
+F2A
+
+```
+
+## Figure 2B
+
+UMAP of Treg cells embedded with the mean pseudotemporal value of each cell.
+
+```{r}
+
+data_F2B <- read.csv("../Data/Gong_et_al_Treg_Fig_2_B.csv")
+
+x_min <- min(data_F2B$umap_1)
+x_max <- max(data_F2B$umap_1)
+y_min <- min(data_F2B$umap_2)
+y_max <- max(data_F2B$umap_2)
+
+F2B <- ggplot(data_F2B, aes(x = umap_1, y = umap_2, color = Avg_pseudotime_value)) + 
+  rasterize(geom_point(size = 0.6), dpi = 300) + 
+  scale_color_gradientn(colors = scales::alpha(viridis::magma(20)[5:20], 0.9), 
+                        name = "Pseudotime", 
+                        limits = c(0, 100), 
+                        breaks = c(0, 25, 50, 75, 100), 
+                        oob = scales::squish) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank()) + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 2, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 2, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4)
+F2B
+
+```
+
+## Figure 2C
+
+Boxplot comparing the average expression level of CSF1 between TNFRhi Treg and other Treg subsets in each patient.
+
+```{r}
+
+data_F2C <- read.csv("../Data/Gong_et_al_Treg_Fig_2_C.csv")
+
+data_F2C$Treg_subclusters <- factor(
+  data_F2C$Treg_subclusters,
+  levels = Treg_levels)
+
+gene <- "CSF1"
+
+comparisons <- list(
+  c("Naive Treg", "TNFR-hi Treg"),
+  c("Early-activated Treg", "TNFR-hi Treg"),
+  c("ISG-hi Treg", "TNFR-hi Treg"),
+  c("Cycling Treg", "TNFR-hi Treg")
+)
+
+## Linear mixed model
+
+model <- lmer(expression ~ Treg_subclusters + (1 | patient_id), data = data_F2C)
+anova(model)
+emm <- emmeans(model, ~ Treg_subclusters)
+
+## Tukey's multiple comparison
+
+pairwise_comparison <- pairs(emm, adjust = "tukey")
+pairwise_result <- as.data.frame(pairwise_comparison) %>%
+  separate(contrast, into = c("group1", "group2"), sep = " - ") %>% 
+  mutate(group1 = str_remove_all(group1, "[()]"), 
+         group2 = str_remove_all(group2, "[()]")) %>% 
+  filter(str_detect(group1, "TNFR-hi Treg") |
+         str_detect(group2, "TNFR-hi Treg")) %>% 
+  mutate(p.label = sprintf("%.2e", p.value))
+
+## Box plot
+
+F2C <- ggplot(data_F2C, aes(x = Treg_subclusters, y = expression, fill = Treg_subclusters)) +
+  geom_boxplot(outlier.shape = NA) + 
+  geom_jitter(aes(fill = Treg_subclusters),
+              shape = 21,
+              color = "black",
+              width = 0.3,
+              size = 1,
+              alpha = 0.9) + 
+  scale_fill_manual(values = hue_pal()(5)) + 
+  theme_classic() +
+  xlab("") + 
+  ylab(paste0("Normalized ", gene, " expression Level")) + 
+  theme(axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5), 
+        axis.text.y = element_text(color = "black"), 
+        axis.line = element_line(color = "black"), 
+        axis.ticks = element_line(color = "black"), 
+        legend.position = "none") + 
+  stat_pvalue_manual(pairwise_result,
+                     label = "p.label",
+                     xmin = "group1",
+                     xmax = "group2",
+                     y.position = c(1.3, 1.5, 1.7, 1.9), 
+                     inherit.aes = F)
+F2C
+
+```
+
+## Figure 2D
+
+A total of 44,296 monocytes and macrophages were bioinformatically isolated from the PBMC and tumor of HNSCC and MEL scRNA-seq datasets and re-clustered into 8 subclusters.
+
+```{r}
+
+data_F2D <- read.csv("../Data/Gong_et_al_Treg_Fig_2_D.csv")
+
+## Axes ranges
+
+x_min <- min(data_F2D$umap_1)
+x_max <- max(data_F2D$umap_1)
+y_min <- min(data_F2D$umap_2)
+y_max <- max(data_F2D$umap_2)
+
+## Define the order of cell types
+
+data_F2D$APC_subclusters <- factor(data_F2D$APC_subclusters, levels = APC_levels)
+
+## Define the color panel for each cell type: hue_pal() is the palette for Seurat
+
+colors <- setNames(hue_pal()(length(levels(data_F2D$APC_subclusters))), 
+                   levels(data_F2D$APC_subclusters))
+
+## Split UMAP: generate each panel without legend
+
+data_F2D_PBMC <- data_F2D %>% 
+  filter(sample_type == "PBMC")
+data_F2D_TIL <- data_F2D %>% 
+  filter(sample_type == "TIL")
+
+UMAP_PBMC <- ggplot(data_F2D_PBMC, aes(x = umap_1, y = umap_2, color = APC_subclusters)) + 
+  rasterize(geom_point(colour = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.position = "none") + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1.7, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 1.7, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  annotate("text", x = x_min, y = y_max, 
+           label = "PBMC", hjust = 0, vjust = 0.5, size = 4)
+
+UMAP_TIL <- ggplot(data_F2D_TIL, aes(x = umap_1, y = umap_2, color = APC_subclusters)) + 
+  rasterize(geom_point(colour = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.position = "none") + 
+  annotate("segment", x = x_min, xend = x_min + 1.5, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 1.5, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 1.7, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 1.7, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4) + 
+  annotate("text", x = x_min, y = y_max, 
+           label = "Tumor", hjust = 0, vjust = 0.5, size = 4)
+
+## Extract legend from main UMAP: to ensure all subclusters are included
+
+UMAP <- ggplot(data_F2D, aes(x = umap_1, y = umap_2, color = APC_subclusters)) + 
+  rasterize(geom_point(color = "black", size = 1.2), dpi = 300) +
+  rasterize(geom_point(size = 0.6, alpha = 0.8), dpi = 300) + 
+  scale_color_manual(values = colors, 
+                     name = NULL) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        text = element_text(color = "black"), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 8)) + 
+  guides(colour = guide_legend(title = "APC subclusters", override.aes = list(size = 4, alpha = 1)))
+
+UMAP_legend <- cowplot::get_legend(UMAP)
+
+F2D <- plot_grid(plot_grid(UMAP_PBMC, UMAP_TIL, nrow = 1, align = "hv"),
+                 UMAP_legend, ncol = 2, rel_widths = c(1, 0.25))
+F2D
+
+```
+
+## Figure 2E
+
+UMAP of monocytes and macrophages embedded with the mean pseudotemporal value of each cell.
+
+```{r}
+
+data_F2E <- read.csv("../Data/Gong_et_al_Treg_Fig_2_E.csv")
+
+x_min <- min(data_F2E$umap_1)
+x_max <- max(data_F2E$umap_1)
+y_min <- min(data_F2E$umap_2)
+y_max <- max(data_F2E$umap_2)
+
+F2E <- ggplot(data_F2E, aes(x = umap_1, y = umap_2, color = Avg_pseudotime_value)) + 
+  rasterize(geom_point(size = 0.6), dpi = 300) + 
+  scale_color_gradientn(colors = scales::alpha(viridis::magma(20)[5:20], 0.9), 
+                        name = "Pseudotime", 
+                        limits = c(0, 140), 
+                        breaks = c(0, 35, 70, 105, 140), 
+                        oob = scales::squish) + 
+  coord_fixed(ratio = 1) + 
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank()) + 
+  annotate("segment", x = x_min, xend = x_min + 2, y = y_min, yend = y_min, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") +
+  annotate("segment", x = x_min, xend = x_min, y = y_min, yend = y_min + 2, 
+           arrow = arrow(type = "closed", angle = 20, length = unit(2, "mm"), ends = "last"), 
+           linewidth = 0.6, color = "black") + 
+  annotate("text", x = x_min + 2.5, y = y_min, 
+           label = "UMAP_1", hjust = 0, vjust = 0.5, size = 4) +
+  annotate("text", x = x_min, y = y_min + 2.5, 
+           label = "UMAP_2", angle = 90, hjust = 0, vjust = 0.5, size = 4)
+F2E
+
+```
+
+## Figure 2F
+
+Spearman correlation across all tumor samples between the proportions of each Treg subcluster and the proportions of each myeloid APC subclusters.
+
+```{r}
+
+data_F2F <- read.csv("../Data/Gong_et_al_Treg_Fig_2_F.csv")
+
+data_F2F$Treg_subcluster <- factor(data_F2F$Treg_subcluster, levels = Treg_levels)
+data_F2F$APC_subcluster <- factor(data_F2F$APC_subcluster, levels = APC_levels)
+
+F2F_plot_data <- data_F2F %>% 
+  mutate(log_p_value = -log10(p_value)) %>% 
+  mutate(significance = ifelse(p_value < 0.05, "Significant", "NS"))
+
+F2F <- ggplot(F2F_plot_data, aes(x = Treg_subcluster, y = APC_subcluster)) +
+  geom_point(aes(size = log_p_value, 
+                 fill = R), 
+             shape = 22, stroke = 0.2) + 
+  geom_text(data = subset(F2F_plot_data, significance == "Significant"), 
+            label = "*", 
+            size = 5, vjust = 0.75, 
+            color = "black") + 
+  scale_fill_gradient2(low = "#2166AC", mid = "white",high = "#B2182B", 
+                       midpoint = 0, limits = c(-1, 1), breaks = c(-1, 0, 1), 
+                       labels = c("-1", "0", "1"), name = "Spearman R") +
+  scale_radius(range = c(1, 17), breaks = c(0, 1.3, 2, 3, 4), 
+               labels = c("1", "0.05", "0.01", "0.001", "0.0001"), 
+               name = "p-value") + 
+  guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5),
+         size = guide_legend(title.position = "top",title.hjust = 0.5)) +
+  theme_classic() + 
+  theme(panel.grid = element_blank(), 
+        axis.text.x = element_text(color = "black", size = 13, angle = 45, hjust = 1), 
+        axis.text.y = element_text(color = "black", size = 13, angle = 0, hjust = 1), 
+        legend.title = element_text(color = "black", size = 10), 
+        legend.text = element_text(color = "black", size = 10), 
+        legend.position = "bottom", 
+        legend.box = "horizontal") +
+  labs(x = NULL,
+       y = NULL) + 
+  coord_fixed()
+F2F
+
+```
+
+## Figure 2G
+
+Integrated NicheNet analysis of Treg-myeloid APC interactions.
+
+```{r}
+
+data_F2G <- readRDS("../Data/Gong_et_al_Treg_Fig_2_G.rds")
+
+## Top 10 Treg-derived ligands ranked by regulatory activity
+
+
+data_F2G_1_plot <- data_F2G$data_F2G_1 %>% 
+  arrange(aupr_corrected) %>% 
+  as.matrix()
+
+p_ligand_aupr <- make_heatmap_ggplot(data_F2G_1_plot,
+                                     "Prioritized ligands", "Ligand activity", 
+                                     legend_title = "AUPR", color = "darkorange") + 
+  theme(axis.text.x.top = element_blank())
+
+## Expression frequency and levels of ligands across Treg subclusters
+
+p_dotplot <- DotPlot(data_F2G$data_F2G_2, 
+                     features = rev(rownames(data_F2G$data_F2G_1)), cols = "RdYlBu") + 
+  coord_flip() +
+  scale_y_discrete(position = "right")
+
+## Quantification of ligands driving the phenotype of SPP1hi macrophages.
+
+data_F2G_3_plot <- as.matrix(data_F2G$data_F2G_3)
+
+p_ligand_target <- make_heatmap_ggplot(data_F2G_3_plot, 
+                                       "Ligands from CD4+ Treg", 
+                                       "Predicted target DEGs in SPP1-hi Macro signature",
+                                       color = "purple", 
+                                       legend_title = "Regulatory potential") +
+  scale_fill_gradient2(low = "whitesmoke",  high = "purple")
+
+## Integrated plot
+
+figures_without_legend <- cowplot::plot_grid(
+  p_ligand_aupr + theme(legend.position = "none"),
+  p_dotplot + theme(legend.position = "none",
+                    axis.ticks = element_blank(),
+                    axis.title.y = element_blank(),
+                    axis.title.x = element_text(size = 12),
+                    axis.text.y = element_text(size = 9),
+                    axis.text.x = element_text(size = 9,  angle = 90, hjust = 0)) +
+    ylab("Expression in CD4+ Treg"),
+  p_ligand_target + theme(legend.position = "none",
+                          axis.title.y = element_blank()),
+  align = "hv",
+  nrow = 1,
+  rel_widths = c(ncol(data_F2G_1_plot) + 6, 5 + 7, ncol(data_F2G_3_plot)))
+
+legends <- cowplot::plot_grid(
+  ggpubr::as_ggplot(ggpubr::get_legend(p_ligand_aupr)),
+  ggpubr::as_ggplot(ggpubr::get_legend(p_dotplot)),
+  ggpubr::as_ggplot(ggpubr::get_legend(p_ligand_target)),
+  nrow = 1,
+  align = "h", rel_widths = c(1.5, 1, 1))
+
+F2G <-  cowplot::plot_grid(figures_without_legend, legends, rel_heights = c(10, 4.5), nrow = 2, align = "hv")
+F2G
+
+```
+
+## Environment information
+
+```{r}
+
+sessionInfo()
+
+```
