@@ -15,13 +15,10 @@ library(cowplot)
 library(ggrepel)
 library(ggplotify)
 library(celltalker)
-library(CellChat)
 
 ```
 
 ## Figure 1A
-
-Schematic workflow of identifying receptor-ligand (R-L) network in scRNA-seq datasets.
 
 ```{r}
 
@@ -30,8 +27,6 @@ F1A <- plot_spacer()
 ```
 
 ## Figure 1B
-
-UMAP of HNSCC split by peripheral blood mononuclear cells (PBMC) and tumor.
 
 ```{r}
 
@@ -147,8 +142,6 @@ F1C <- plot_spacer()
 
 ## Figure 1D
 
-Number of tumor-specific R-L pairs between each myeloid antigen presenting cell (APC) subsets and CD4+ Treg or CD8+ T cells.
-
 ```{r}
 
 F1D <- plot_spacer()
@@ -157,8 +150,6 @@ F1D <- plot_spacer()
 
 ## Figure 1E
 
-Venn diagram of filtering tumor-specific R-L pairs with tumor-up ligands.
-
 ```{r}
 
 F1E <- plot_spacer()
@@ -166,8 +157,6 @@ F1E <- plot_spacer()
 ```
 
 ## Figure 1F
-
-Volcano plots comparing the expression of genes between cells in tumor and PBMC, respectively for CD4+ Treg and CD8+ T cells.
 
 ```{r}
 
@@ -309,8 +298,6 @@ F1F_2
 
 ## Figure 1G
 
-Circos plot showing the tumor-specific R-L pairs among CD4+ Treg, CD8+ T cells, and myeloid APCs.
-
 ```{r}
 
 data_F1G <- read.csv("../Data/Gong_et_al_Treg_Fig_1_G.csv")
@@ -333,31 +320,6 @@ F1G <- as.ggplot(
                facing_outer = "outside",
                facing_inner = "clockwise"))
 F1G
-
-```
-
-## Figure 1H
-
-A representative cellular neighborhood (neighborhood 1) enriched by CD4+ Treg and CD14+CD16+ myeloid cells in HNSCC spatial transcriptomic dataset.
-
-```{r}
-
-F1H <- plot_spacer()
-
-```
-
-## Figure 1I
-
-Heatmap quantifying the communication probability of CSF signaling network in aforementioned cellular neighborhood 1.
-
-```{r}
-
-data_F1I <- readRDS("../Data/Gong_et_al_Treg_Fig_1_I.rds")
-
-pathways.show <- c("CSF")
-
-F1I <- as.ggplot(netVisual_heatmap(data_F1I, signaling = pathways.show, color.heatmap = "Reds"))
-F1I
 
 ```
 

@@ -20,8 +20,6 @@ library(tidygraph)
 
 ## Figure 3A
 
-Schematic workflow for establishing in vitro microsuppression assays (MSA) for scRNA-seq.
-
 ```{r}
 
 F3A <- plot_spacer()
@@ -30,8 +28,6 @@ F3A <- plot_spacer()
 
 ## Figure 3B
 
-Representative histograms of CD8+ T cell proliferation under four sequencing conditions.
-
 ```{r}
 
 F3B <- plot_spacer()
@@ -39,8 +35,6 @@ F3B <- plot_spacer()
 ```
 
 ## Figure 3C
-
-UMAP showing four major cell types identified in MSA dataset (upper panel) across four sequencing conditions (lower panel)
 
 ```{r}
 
@@ -55,7 +49,7 @@ y_max <- max(data_F3C$umap_2)
 
 ## Define the order of cell types
 
-data_F3C$cell_types_crude <- factor(data_F3C$cell_types_crude, levels = c("CD14+CD16+ myeloid", "CD4+ Treg", "CD8+ T cells", "γδT cells"))
+data_F3C$cell_types_crude <- factor(data_F3C$cell_types_crude, levels = c("CD14+CD16+ macrophages", "CD4+ Treg", "CD8+ T cells", "γδT cells"))
 
 ## Define the color panel for each cell type: hue_pal() is the palette for Seurat
 
@@ -126,8 +120,6 @@ F3C_2
 
 ## Figure 3D
 
-Dot plots quantifying net enrichment scores (NES) and false discovery rates (FDR) from gene set enrichment analysis.
-
 ```{r}
 
 data_F3D <- readRDS("../Data/Gong_et_al_Treg_Fig_3_D.rds")
@@ -173,7 +165,7 @@ plot_dotplot <- function(df) {
   return(p)
 }
 
-## For CD14+CD16+ myeloid cells
+## For CD14+CD16+ macrophages
 
 selected_pathways <- c("HALLMARK_APOPTOSIS", 
                        "HALLMARK_E2F_TARGETS", 
@@ -198,7 +190,7 @@ selected_pathways <- c("HALLMARK_APOPTOSIS",
                        "SPP1-hi Macro"
                        )
 
-F3D_1 <- plot_dotplot(data_F3D[["CD14+CD16+ myeloid"]] %>% 
+F3D_1 <- plot_dotplot(data_F3D[["CD14+CD16+ macrophages"]] %>% 
   filter(pathway %in% unique(selected_pathways)))
 F3D_1
 
@@ -234,8 +226,6 @@ F3D_2
 
 ## Figure 3E
 
-Bar plots showing the number of differentially expressed target genes regulated by top 10 transcription factors (TFs) in CD14+CD16+ myeloid cells under three sequencing conditions.
-
 ```{r}
 
 data_F3E <- readRDS("../Data/Gong_et_al_Treg_Fig_3_E.rds")
@@ -248,7 +238,7 @@ F3E_1 <- data_F3E$data_F3E_1 %>%
   geom_col(fill = "#E50012") +
   xlab("TF module") +
   ylab("Number of genes in TF module") +
-  ggtitle("CD14+CD16+ myeloid: max suppression") +
+  ggtitle("CD14+CD16+ macrophages: max suppression") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 F3E_1
@@ -261,7 +251,7 @@ F3E_2 <- data_F3E$data_F3E_2 %>%
   geom_col(fill = "#036EB7") +
   xlab("TF module") +
   ylab("Number of genes in TF module") +
-  ggtitle("CD14+CD16+ myeloid: no suppression") +
+  ggtitle("CD14+CD16+ macrophages: no suppression") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 F3E_2
@@ -274,7 +264,7 @@ F3E_3 <- data_F3E$data_F3E_3 %>%
   geom_col(fill = "#5F1985") +
   xlab("TF module") +
   ylab("Number of genes in TF module") +
-  ggtitle("CD14+CD16+ myeloid: unstimulated control") +
+  ggtitle("CD14+CD16+ macrophages: unstimulated control") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 F3E_3
@@ -282,8 +272,6 @@ F3E_3
 ```
 
 ## Figure 3F
-
-Gene regulatory networks of top 10 TFs and their top 10 target genes in CD14+CD16+ myeloid cells under two sequencing conditions.
 
 ```{r}
 
@@ -311,7 +299,7 @@ F3F_1 <- as_tbl_graph(g1) %>%
         axis.text=element_blank(),
         axis.ticks = element_blank()) +
   guides(fill = guide_legend(title = "", override.aes = aes(label = ""))) +
-  ggtitle("CD14+CD16+ myeloid: max suppression")
+  ggtitle("CD14+CD16+ macrophages: max suppression")
 F3F_1
 
 ## No suppression
@@ -336,7 +324,7 @@ F3F_2 <- as_tbl_graph(g2) %>%
         axis.text=element_blank(),
         axis.ticks = element_blank()) +
   guides(fill = guide_legend(title = "", override.aes = aes(label = ""))) +
-  ggtitle("CD14+CD16+ myeloid: no suppression")
+  ggtitle("CD14+CD16+ macrophages: no suppression")
 F3F_2
 
 ```

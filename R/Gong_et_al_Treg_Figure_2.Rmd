@@ -25,8 +25,6 @@ APC_levels <- c("Classical Mono", "Non-classical Mono", "C1QC-hi Macro", "HSP-hi
 
 ## Figure 2A
 
-A total of 15,578 Treg cells were bioinformatically isolated from the PBMC and tumor of HNSCC and MEL scRNA-seq datasets and re-clustered into 5 subclusters.
-
 ```{r}
 
 data_F2A <- read.csv("../Data/Gong_et_al_Treg_Fig_2_A.csv")
@@ -131,8 +129,6 @@ F2A
 
 ## Figure 2B
 
-UMAP of Treg cells embedded with the mean pseudotemporal value of each cell.
-
 ```{r}
 
 data_F2B <- read.csv("../Data/Gong_et_al_Treg_Fig_2_B.csv")
@@ -169,8 +165,6 @@ F2B
 ```
 
 ## Figure 2C
-
-Boxplot comparing the average expression level of CSF1 between TNFRhi Treg and other Treg subsets in each patient.
 
 ```{r}
 
@@ -236,8 +230,6 @@ F2C
 ```
 
 ## Figure 2D
-
-A total of 44,296 monocytes and macrophages were bioinformatically isolated from the PBMC and tumor of HNSCC and MEL scRNA-seq datasets and re-clustered into 8 subclusters.
 
 ```{r}
 
@@ -343,8 +335,6 @@ F2D
 
 ## Figure 2E
 
-UMAP of monocytes and macrophages embedded with the mean pseudotemporal value of each cell.
-
 ```{r}
 
 data_F2E <- read.csv("../Data/Gong_et_al_Treg_Fig_2_E.csv")
@@ -381,8 +371,6 @@ F2E
 ```
 
 ## Figure 2F
-
-Spearman correlation across all tumor samples between the proportions of each Treg subcluster and the proportions of each myeloid APC subclusters.
 
 ```{r}
 
@@ -427,8 +415,6 @@ F2F
 ```
 
 ## Figure 2G
-
-Integrated NicheNet analysis of Treg-myeloid APC interactions.
 
 ```{r}
 
